@@ -1,7 +1,10 @@
-from flask import Flask, render_template, request
-from werkzeug.utils import secure_filename
+from flask import Flask, render_template, request, redirect, url_for, flash
+from flask.helpers import url_for
+from werkzeug.utils import redirect, secure_filename
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from upload_cloud import upload_cloud
+from paste_cloud import paste_cloud
 
 # Flaskをインスタンス化
 app = Flask(__name__)
@@ -29,15 +32,17 @@ def initialize_DB():
 def not_found(error):
   return '404エラー'
 
-# indexページ
+
 @app.route('/')
 def index():
-    return render_template('index.html')
+  registration_data = DB.query.all()
+  return render_template('index.html', registration_data=registration_data)
 
-#ファイルアップロードページ
+
 @app.route('/upload')
 def upload():
   return render_template('upload.html')
+
 
 @app.route('/upload_register', methods=['POST'])
 def upload_register():
@@ -47,11 +52,36 @@ def upload_register():
     file_path = secure_filename(file.filename)
     file_path = 'static/' + file_path
     file.save(file_path)
-    return file_path
+    
+    # upload_cloud関数を実装する
+    result_path = upload_cloud(file_path)
+    register_file = DB(title=title, file_path=result_path)
+    db.session.add(register_file)
+    db.session.commit(register_file)
+    flash('結果ファイルが用意できました')
+    return redirect(url_for('index'))
+  else:
+    flash('タイトルを入力してもう一度やり直してください')
+    return redirect(url_for('index'))
+
 
 @app.route('/paste')
 def paste():
-  return render_template('paste.html')
+  title = request.form['title']
+  if title:
+    paste_data = request.files['paste_data']
+
+    # paste_cloud関数を実装する
+    result_path = paste_cloud(title, paste_data)
+    register_file = DB(title=title, file_path=result_path)
+    db.session.add(register_file)
+    db.session.commit(register_file)
+    flash('結果ファイルが用意できました')
+    return redirect(url_for('index'))
+  else:
+    flash('タイトルを入力してもう一度やり直してください')
+    return redirect(url_for('index'))
+
 
 @app.route('/paste_register', methods=['POST'])
 def paste_register():
@@ -59,6 +89,7 @@ def paste_register():
   if title:
     paste_data = request.form['paste_data']
     return paste_data
+
 
 if __name__ == "__main__":
     app.run(debug=True)
