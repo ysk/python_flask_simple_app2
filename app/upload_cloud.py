@@ -21,7 +21,7 @@ def upload_cloud(file_path):
             word_list.append(word)
     
     wc = WordCloud(background_color="white",
-                    font_path=r'C:\Windows\Fonts\msyhbd.ttc',
+                    font_path=r'msyhbd.ttc',
                     width=800, height=800)
     wc.generate(words)
     wc.to_file('static/' + file_path[:-3] + 'png')

@@ -1,10 +1,12 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import (Flask, render_template, request, 
+                  redirect, url_for, flash, send_from_directory)
 from flask.helpers import url_for
 from werkzeug.utils import redirect, secure_filename
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from upload_cloud import upload_cloud
 from paste_cloud import paste_cloud
+import os
 
 # Flaskをインスタンス化
 app = Flask(__name__)
@@ -33,6 +35,8 @@ def not_found(error):
   return '404エラー'
 
 
+
+# /// メインプログラム ///
 @app.route('/')
 def index():
   registration_data = DB.query.all()
@@ -50,14 +54,14 @@ def upload_register():
   if title:
     file = request.files['file']
     file_path = secure_filename(file.filename)
-    file_path = 'static/' + file_path
+  #  file_path = 'static/' + file_path
     file.save(file_path)
     
     # upload_cloud関数を実装する
     result_path = upload_cloud(file_path)
     register_file = DB(title=title, file_path=result_path)
     db.session.add(register_file)
-    db.session.commit(register_file)
+    db.session.commit()
     flash('結果ファイルが用意できました')
     return redirect(url_for('index'))
   else:
@@ -67,20 +71,7 @@ def upload_register():
 
 @app.route('/paste')
 def paste():
-  title = request.form['title']
-  if title:
-    paste_data = request.files['paste_data']
-
-    # paste_cloud関数を実装する
-    result_path = paste_cloud(title, paste_data)
-    register_file = DB(title=title, file_path=result_path)
-    db.session.add(register_file)
-    db.session.commit(register_file)
-    flash('結果ファイルが用意できました')
-    return redirect(url_for('index'))
-  else:
-    flash('タイトルを入力してもう一度やり直してください')
-    return redirect(url_for('index'))
+  return render_template('paste.html')
 
 
 @app.route('/paste_register', methods=['POST'])
@@ -88,7 +79,17 @@ def paste_register():
   title = request.form['title']
   if title:
     paste_data = request.form['paste_data']
-    return paste_data
+
+    # paste_cloud関数を実装する
+    result_path = paste_cloud(title, paste_data)
+    register_file = DB(title=title, file_path=result_path)
+    db.session.add(register_file)
+    db.session.commit()
+    flash('結果ファイルが用意できました')
+    return redirect(url_for('index'))
+  else:
+    flash('タイトルを入力してもう一度やり直してください')
+    return redirect(url_for('index'))
 
 
 if __name__ == "__main__":
